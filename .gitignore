@@ -1,0 +1,19 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+crash.log
+
+# Sensitive or build-specific
+*.log
+.env
+*.bak
+
+# System
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
