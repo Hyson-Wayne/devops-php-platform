@@ -5,7 +5,7 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y nginx
 
 # Copy your app
-COPY ./php /var/www/html
+COPY ./app /var/www/html
 
 # Copy nginx configuration
 COPY ./docker/nginx.conf /etc/nginx/sites-available/default
