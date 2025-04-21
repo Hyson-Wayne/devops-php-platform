@@ -37,6 +37,10 @@ jobs:
       run: |
         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.IMAGE_NAME }}:latest
 
+    - name: Run PHP Unit Test
+      run: |
+        php app/test.php
+        
     - name:  Deploy to Cloud Run
       run: |
         gcloud run deploy php-nginx-service           --image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.IMAGE_NAME }}:latest           --region=${{ secrets.GCP_REGION }}           --platform=managed           --allow-unauthenticated           --quiet
