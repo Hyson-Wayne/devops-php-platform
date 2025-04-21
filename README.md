@@ -1,5 +1,4 @@
-
-# DevOps PHP Platform 
+# DevOps PHP Platform
 
 This project demonstrates the deployment of a containerized **PHP-FPM application** with **Nginx** to **Google Cloud Run** using **Terraform**, **Docker**, and **Google Cloud Platform (GCP)** services — all orchestrated as part of a technical DevOps test.
 
@@ -12,11 +11,12 @@ This project demonstrates the deployment of a containerized **PHP-FPM applicatio
 - Infrastructure provisioned with **Terraform**
 - Uses **Cloud SQL (MySQL)** and **Cloud Storage**
 - Infrastructure state managed via **GCS remote backend**
-- All code, configuration, and setup documented
+- CI/CD automated with **GitHub Actions**
+- Includes operational tooling via Bash script for live deployment lookup
 
 ---
 
-##  Architecture
+## Architecture
 
 ```text
   +-------------+           +-------------------------+
@@ -38,7 +38,7 @@ This project demonstrates the deployment of a containerized **PHP-FPM applicatio
 
 ---
 
-##  Technologies Used
+## Technologies Used
 
 | Tool/Service       | Role                                  |
 |--------------------|---------------------------------------|
@@ -47,11 +47,12 @@ This project demonstrates the deployment of a containerized **PHP-FPM applicatio
 | **Cloud SQL**       | Host the MySQL database              |
 | **Cloud Storage**   | Store static files                   |
 | **Docker**          | Build and package the PHP app        |
-| **GitHub**          | Code and version control             |
+| **GitHub Actions**  | CI/CD automation                     |
+| **Bash Script**     | Retrieve service URL after deploy    |
 
 ---
 
-##  Project Structure
+## Project Structure
 
 ```
 devops-php-platform/
@@ -65,12 +66,16 @@ devops-php-platform/
 │   └── terraform.tfvars
 ├── modules/
 │   └── cloud_sql/         # Reusable Terraform module for Cloud SQL
+├── .github/workflows/     # GitHub Actions workflow
+│   └── deploy.yml
+├── get-cloud-run-url.sh   # Bash script to fetch Cloud Run service URL
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-##  How to Deploy
+## How to Deploy
 
 ### 1. Clone the repo
 
@@ -86,19 +91,21 @@ gcloud auth login
 gcloud auth application-default login
 ```
 
-### 3. Set up Terraform backend (already configured)
+### 3. Set up Terraform backend
 
 Ensure this bucket exists:
+
 ```bash
 gsutil mb -p devops-php-platform -l us-central1 gs://devops-php-platform-tfstate
 ```
 
-Then:
+Then initialize:
+
 ```bash
 terraform init
 ```
 
-### 4. Deploy infrastructure
+### 4. Apply Terraform configuration
 
 ```bash
 terraform apply -var-file="terraform.tfvars"
@@ -106,29 +113,39 @@ terraform apply -var-file="terraform.tfvars"
 
 ---
 
-##  Live Cloud Run URL
+## CI/CD Workflow with GitHub Actions
 
-Once deployed, Terraform will output a public Cloud Run URL. Open it in your browser to verify your app is running.
+On each push to the `main` branch, the pipeline:
+
+- Builds the Docker image
+- Pushes it to GCR
+- Deploys the image to Cloud Run
+
+Secrets used:
+
+| Secret Name       | Purpose                       |
+|-------------------|-------------------------------|
+| `GCP_PROJECT_ID`  | Your GCP project ID           |
+| `GCP_REGION`      | Deployment region             |
+| `GCP_SA_KEY`      | GCP service account credentials (JSON) |
+| `IMAGE_NAME`      | Docker image name (e.g., php-nginx) |
 
 ---
 
+## Live Cloud Run URL
+
+Once deployed, Terraform will output a public Cloud Run URL.  
+You can also use the script below to retrieve it on demand.
 
 ---
 
 ## Section 3: Retrieve Cloud Run Service URL (Bash Script)
 
-As part of this project’s automation and operational tooling, a simple Bash script is included to help retrieve the **public URL of a deployed Cloud Run service** based on the environment.
+A Bash script helps retrieve the live URL of your deployed Cloud Run service.
 
 ### Script: `get-cloud-run-url.sh`
 
-**Location**: Root of this project (`./get-cloud-run-url.sh`)
-
-### Purpose
-
-Quickly fetch the deployed URL of your Cloud Run service so you can:
-- Verify deployments
-- Integrate with frontends or external tools
-- Debug environments
+**Location**: Root of this project
 
 ### How to Use
 
@@ -137,48 +154,39 @@ chmod +x get-cloud-run-url.sh
 ./get-cloud-run-url.sh dev
 ```
 
-> Note: For this test, the service name is hardcoded to `php-nginx-service`. You can extend this for other environments.
-
-### Example Output
-
-```
-[INFO] Looking up Cloud Run service: php-nginx-service
-[SUCCESS] Service URL for 'php-nginx-service': https://php-nginx-service-abcde-uc.a.run.app
-```
+> Note: For this test, the service name is hardcoded to `php-nginx-service`.
 
 ### What It Does
 
-- Accepts an optional environment argument (e.g., `dev`, `prod`)
-- Looks up a matching Cloud Run service
-- Uses `gcloud run services describe` to extract the public URL
-- Logs all actions and errors into `cloud-run-url.log`
-
-### Output Log
-
-Each run creates/appends a log file:
-```bash
-cloud-run-url.log
-```
-
-Add it to `.gitignore` to avoid versioning logs.
+- Describes the Cloud Run service via `gcloud run services describe`
+- Logs the output to `cloud-run-url.log`
 
 ---
 
-## Final Note
+## Troubleshooting
 
-This script demonstrates your ability to support real-world operations with simple automation, which is critical for DevOps reliability and observability.
-
-
-
-## References
-
-- [Cloud SQL Docs](https://cloud.google.com/sql/docs/mysql)
-- [Cloud Run Docs](https://cloud.google.com/run/docs)
-- [Terraform GCP Provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
+| Problem | Solution |
+|---------|----------|
+| Dockerfile not found | Specify `-f docker/Dockerfile` in `docker build` |
+| php folder missing in image | Use `COPY ./app /var/www/html` instead |
+| Docker push denied | Add `gcloud auth configure-docker` in workflow |
+| Wrong service name in script | Update script to match deployed name |
+| Push failed | Use `git pull --rebase` before pushing again |
 
 ---
 
-## ‍ Author
+## Potential Improvements
+
+- Add PHP unit/integration tests and run them in CI
+- Use Terraform Cloud for remote state management
+- Add separate staging/production environments
+- Automate HTTPS with a global load balancer
+- Integrate Cloud Monitoring and Logging
+
+---
+
+## Author
 
 **Hyson Wayne**  
-https://www.linkedin.com/in/nditafon-hyson-762a6623b/
+DevOps | Cloud | Automation  
+[LinkedIn](https://www.linkedin.com/in/nditafon-hyson-762a6623b/)
